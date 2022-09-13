@@ -1,6 +1,6 @@
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
-import flatpickr from "flatpickr";
-import "flatpickr/dist/flatpickr.min.css";
 
 const startBtn = document.querySelector('button[data-start]');
 
@@ -11,81 +11,78 @@ const minuteValue = document.querySelector('[data-minutes]');
 const secondValue = document.querySelector('[data-seconds]');
 
 
-
-let timerId = null;
-startBtn.disabled = true;
-
+startBtn.setAttribute('disabled', true);
+let selectDate = 0;
+let timerId;
 
 const options = {
-    enableTime: true,
-    time_24hr: true,
-    defaultDate: new Date(),
-    minuteIncrement: 1,
-    onClose(selectedDates) {
-      const finishDate = selectedDates[0].getTime();
-      onDate(finishDate);
-    
-    },
-  };
+  enableTime: true,
+  time_24hr: true,
+  minuteIncrement: 1,
+  onClose(selectedDates) {
+    selectDate = new Date(selectedDates[0]).getTime();
+    checkDate(selectDate);
+  },
+};
 
-  flatpickr('#datetime-picker', options);
+flatpickr(inputEl, options);
 
-    function onDate(finishDate){
-        const currentDate = Date.now();
-        const pastTime = finishDate < currentDate;
-        const futureTime = finishDate > currentDate;
-        
-        console.log(convertMs(finishDate));
-        if(futureTime){
-            startBtn.disabled = false;
-     
-            startBtn.style.backgroundColor = '#AEF850';
-            startBtn.style.borderColor = 'green';
-            inputEl.style.color = 'green';
-          
-        }
-         if(pastTime){
-            Notify.failure('Please choose a date in the future');
-            startBtn.style.backgroundColor = 'red';
-         }
+startBtn.addEventListener('click', () => {
+  startBtn.setAttribute('disabled', true);
 
-         startBtn.addEventListener('click', () =>{
-            startBtn.disabled = true;
-            
-        
-        timerId =  setInterval(() => {
-            const currentDateValue = new Date().getTime();
-            let leftTime = finishDate - currentDateValue;
-            const { days, hours, minutes, seconds} = convertMs(leftTime);
-                dateValue.textContent = `${days}`;
-                hourValue.textContent = `${hours}`;
-                minuteValue.textContent = `${minutes}`;
-                secondValue.textContent = `${seconds}`;
+    timerId = setInterval(() => {
+      const currentDateValue = currentDate();
+      let finishTime = selectDate - currentDateValue;
+      const { days, hours, minutes, seconds } = convertMs(finishTime);
+      dateValue.textContent = pad(`${days}`);
+      hourValue.textContent = pad(`${hours}`);
+      minuteValue.textContent = pad(`${minutes}`);
+      secondValue.textContent = pad(`${seconds}`);
+      if (seconds === 0 && minutes === 0 && hours === 0 && days === 0) {
+        clearInterval(timerId);
+      }
+    }, 1000);
+   
 
-                if (seconds === 0 && minutes === 0 && hours === 0 && days === 0){
-                    clearInterval(timerId);
-                }
-           }, 1000);
-           
-         });
-       
-         
-    }
+ });
+ function currentDate() {
+  return new Date().getTime();
+}
 
-   function convertMs(ms){
-      const second = 1000;
-      const minute = second * 60;
-      const hour = minute * 60;
-      const day = hour * 24;
-  
-      const days = pad(Math.floor(ms / day));
-      const hours = pad(Math.floor((ms % day) / hour));
-      const minutes = pad(Math.floor(((ms % day) % hour) / minute));
-      const seconds = pad(Math.floor((((ms % day) % hour) % minute) / second));
-  
-      return { days, hours, minutes, seconds };
-    }
-  
+
+
+function checkDate(valueDate) {
+  const currentDateValue = currentDate();
+  const pastTime = currentDateValue > valueDate;
+  const futureTime = currentDateValue < valueDate;
+  if (pastTime) {
+    Notify.failure('Please choose a date in the future');
+    startBtn.style.backgroundColor = 'red';
+    startBtn.setAttribute('disabled', true);
+    return;}
+  if (futureTime) {
+    Notify.success('Timer can be started');
+    startBtn.removeAttribute('disabled');
+    startBtn.style.backgroundColor = '#AEF850';
+    startBtn.style.borderColor = 'green';
+    inputEl.style.color = 'green';
+    return;
+  }
+}
+
+function convertMs(ms) {
+  const second = 1000;
+  const minute = second * 60;
+  const hour = minute * 60;
+  const day = hour * 24;
+
+  const days = Math.floor(ms / day);
+  const hours = Math.floor((ms % day) / hour);
+  const minutes = Math.floor(((ms % day) % hour) / minute);
+  const seconds = Math.floor((((ms % day) % hour) % minute) / second);
+
+  return { days, hours, minutes, seconds };
+}
   function pad(value) {
     return String(value).padStart(2, '0');
   }
